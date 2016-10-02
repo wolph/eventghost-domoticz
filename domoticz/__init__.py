@@ -5,9 +5,10 @@ import abc
 import requests
 import wx
 
-import eg_base
+import utils
 import panels
 import widgets
+import eg_base
 
 
 if not eg_base.TESTING:
@@ -44,14 +45,17 @@ class DomoticzPlugin(panels.Plugin):
             url = 'http://' + url
         return url
 
+    def GetLabel(self, config, *args, **kwargs):
+        return 'Domoticz %s' % config.get('host')
+
     def Configure(self, config=None, *args):
         panel, config = panels.Plugin.Configure(self, config, *args)
-        config.setdefault('timeout', 3)
+        config.setdefault('timeout', 1)
 
         self.add_field('host')
         self.add_field('user')
         self.add_field('pass', style=wx.TE_PASSWORD)
-        self.add_field('timeout', widget=wx.SpinCtrlDouble)
+        self.add_field('timeout', widget=wx.SpinCtrl)
 
         while panel.Affirmed():
             for k, v in self.widgets.items():
@@ -63,7 +67,7 @@ class DomoticzPlugin(panels.Plugin):
                 panel.SetResult(config)
                 print('Successfully connected to %r' % self.url)
             except Exception as e:
-                panels.print_error('Unable to connect: %r' % e)
+                utils.error('Unable to connect: %r' % e)
 
     def execute(self, verbose=False, **params):
         config = self.config
@@ -76,8 +80,12 @@ class DomoticzPlugin(panels.Plugin):
         if verbose:
             print(self.url, params)
 
+        timeout = int(config.get('timeout'))
+        print('connecting to %r' % self.url)
+        print('using params %r' % params)
+        print('with timeout %r' % timeout)
         response = requests.get(self.url, auth=auth, params=params,
-                                timeout=config.get('timeout', 3))
+                                timeout=timeout)
         data = response.json()
         assert data['status'] == 'OK'
         return data
@@ -104,6 +112,12 @@ class DomoticzDevice(panels.Action):
     @abc.abstractproperty
     def name(self):
         raise NotImplementedError()
+
+    def GetLabel(self, config, *args, **kwargs):
+        return 'Set %s to %s' % (
+            config['switch']['Name'],
+            config['value'],
+        )
 
     def __call__(self, config, switchcmd, **kwargs):
         self.plugin.execute(
@@ -152,6 +166,7 @@ class DomoticzDevice(panels.Action):
 
                 config['idx'] = idx
                 config['value'] = value
+                config['switch'] = switches[idx]
                 panel.SetResult(config)
 
 
