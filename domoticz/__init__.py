@@ -39,14 +39,19 @@ class DomoticzPlugin(panels.Plugin):
 
     @property
     def url(self):
-        return self.config['host'].rstrip('/') + '/json.htm'
+        url = self.config['host'].rstrip('/') + '/json.htm'
+        if not url.startswith('http'):
+            url = 'http://' + url
+        return url
 
     def Configure(self, config=None, *args):
         panel, config = panels.Plugin.Configure(self, config, *args)
+        config.setdefault('timeout', 3)
 
         self.add_field('host')
         self.add_field('user')
         self.add_field('pass', style=wx.TE_PASSWORD)
+        self.add_field('timeout', widget=wx.SpinCtrlDouble)
 
         while panel.Affirmed():
             for k, v in self.widgets.items():
@@ -71,7 +76,8 @@ class DomoticzPlugin(panels.Plugin):
         if verbose:
             print(self.url, params)
 
-        response = requests.get(self.url, auth=auth, params=params)
+        response = requests.get(self.url, auth=auth, params=params,
+                                timeout=config.get('timeout', 3))
         data = response.json()
         assert data['status'] == 'OK'
         return data
