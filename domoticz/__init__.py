@@ -1,8 +1,9 @@
 from __future__ import print_function
 
+import abc
+
 import requests
 import wx
-import abc
 
 import eg_base
 import panels
@@ -120,9 +121,16 @@ class DomoticzDevice(panels.Action):
 
         switches = self.getswitches()
 
+        if eg_base.TESTING:
+            # TODO: make wx somehow automatically resize this widget with the
+            # window
+            size = 800, 500
+        else:
+            size = 500, -1
+
         switch_list = widgets.ListCtrl(
             panel, self.columns, switches, selected=config.get('idx'),
-            style=wx.LC_SINGLE_SEL)
+            style=wx.LC_SINGLE_SEL, size=size)
 
         self.add('switch', switch_list)
 

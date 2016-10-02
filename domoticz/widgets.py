@@ -1,9 +1,11 @@
 import wx
 from wx.lib.mixins import listctrl
 
+import eg_base
+
 
 class ListCtrl(wx.ListCtrl, listctrl.ColumnSorterMixin):
-    def __init__(self, parent, columns, data, selected=None, size=(800, 700),
+    def __init__(self, parent, columns, data, selected=None, size=(-1, -1),
                  *args, **kwargs):
         self.columns = []
         self.rows = 0
