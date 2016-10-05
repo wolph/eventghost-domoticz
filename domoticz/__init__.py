@@ -16,7 +16,7 @@ if not eg_base.TESTING:
         name='Domoticz',
         guid='{3417a9ba-cbc9-4869-9f4d-87aaa9f57ac2}',
         author='Rick van Hattem <wolph@wol.ph>',
-        version='0.1',
+        version='0.2.debug',
         kind='external',
         canMultiLoad=True,
         description='Adds Domoticz devices to EventGhost',
