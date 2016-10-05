@@ -51,6 +51,7 @@ class DomoticzPlugin(panels.Plugin):
     def Configure(self, config=None, *args):
         panel, config = panels.Plugin.Configure(self, config, *args)
         config.setdefault('timeout', 1)
+        config.setdefault('host', 'http://domoticz')
 
         self.add_field('host')
         self.add_field('user')
@@ -80,7 +81,7 @@ class DomoticzPlugin(panels.Plugin):
         if verbose:
             print(self.url, params)
 
-        timeout = int(config.get('timeout'))
+        timeout = int(config.get('timeout', 1))
         print('connecting to %r' % self.url)
         print('using params %r' % params)
         print('with timeout %r' % timeout)
