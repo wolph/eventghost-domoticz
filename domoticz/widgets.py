@@ -9,7 +9,7 @@ class ListCtrl(wx.ListCtrl, listctrl.ColumnSorterMixin):
         self.rows = 0
 
         kwargs['style'] = kwargs.get('style', 0) | wx.LC_REPORT \
-                          | wx.BORDER_SUNKEN
+            | wx.BORDER_SUNKEN
 
         wx.ListCtrl.__init__(self, parent, size=size, *args, **kwargs)
         listctrl.ColumnSorterMixin.__init__(self, len(columns))

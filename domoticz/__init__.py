@@ -180,7 +180,6 @@ class DomoticzDevice(panels.Action):
             switch_list.setData(self.getswitches(), idx)
 
 
-
 class DomoticzRaw(DomoticzDevice):
     name = 'Raw'
     switch_type = None

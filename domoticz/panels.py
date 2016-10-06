@@ -10,8 +10,8 @@ class Panel(eg_base.Panel):
         def __init__(self, executable=None, resizable=True, showLine=True):
             eg_base.Panel.__init__(
                 self, None, wx.ID_ANY, '%s Test' % self.__class__.__name__,
-                style=wx.DEFAULT_DIALOG_STYLE | wx.THICK_FRAME
-                      | wx.RESIZE_BORDER | wx.TAB_TRAVERSAL, size=(800, 600))
+                style=wx.DEFAULT_DIALOG_STYLE | wx.THICK_FRAME |
+                wx.RESIZE_BORDER | wx.TAB_TRAVERSAL, size=(800, 600))
 
             self.main_sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -145,13 +145,14 @@ class Plugin(Base, eg_base.Plugin):
     def __close__(self):
         pass
 
-    def AddAction(self, action):
-        self.actions[action.__name__] = eg_base.Plugin.AddAction(self, action)
-
     if eg_base.TESTING:
         def AddAction(self, action):
             instance = action()
             instance.plugin = self
             instance.Configure(self.config)
             self.actions[action.__name__] = instance
+    else:
+        def AddAction(self, action):
+            self.actions[action.__name__] = eg_base.Plugin.AddAction(
+                self, action)
 
