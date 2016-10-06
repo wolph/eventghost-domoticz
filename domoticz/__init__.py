@@ -1,14 +1,15 @@
 from __future__ import print_function
 
 import abc
+import math
 
 import requests
 import wx
 
-import utils
-import panels
-import widgets
 import eg_base
+import panels
+import utils
+import widgets
 
 
 if not eg_base.TESTING:
@@ -16,7 +17,7 @@ if not eg_base.TESTING:
         name='Domoticz',
         guid='{3417a9ba-cbc9-4869-9f4d-87aaa9f57ac2}',
         author='Rick van Hattem <wolph@wol.ph>',
-        version='0.2.debug',
+        version='0.2',
         kind='external',
         canMultiLoad=True,
         description='Adds Domoticz devices to EventGhost',
@@ -35,8 +36,7 @@ class DomoticzPlugin(panels.Plugin):
 
     def __start__(self, config=None):
         panels.Plugin.__start__(self, config)
-        if config:
-            self.config.update(config)
+        self.config.update(config or {})
 
     @property
     def url(self):
@@ -57,16 +57,24 @@ class DomoticzPlugin(panels.Plugin):
         self.add_field('user')
         self.add_field('pass', style=wx.TE_PASSWORD)
         self.add_field('timeout', widget=wx.SpinCtrl)
+        self.add_label('debug')
+        self.add('debug', widget=wx.CheckBox(panel), col=1)
+        self.widgets['debug'].SetValue(config.get('debug', False))
 
         while panel.Affirmed():
             for k, v in self.widgets.items():
                 if isinstance(v, wx.TextCtrl):
                     config[k] = v.GetValue().strip()
+                elif isinstance(v, wx.CheckBox):
+                    if v.Is3State():
+                        config[k] = v.Get3StateValue()
+                    else:
+                        config[k] = v.GetValue()
 
             try:
                 self.getswitches()
                 panel.SetResult(config)
-                print('Successfully connected to %r' % self.url)
+                print('Connected to %r' % self.url)
             except Exception as e:
                 utils.error('Unable to connect: %r' % e)
 
@@ -78,13 +86,10 @@ class DomoticzPlugin(panels.Plugin):
         else:
             auth = None
 
-        if verbose:
+        if verbose or config.get('debug'):
             print(self.url, params)
 
         timeout = int(config.get('timeout', 1))
-        print('connecting to %r' % self.url)
-        print('using params %r' % params)
-        print('with timeout %r' % timeout)
         response = requests.get(self.url, auth=auth, params=params,
                                 timeout=timeout)
         data = response.json()
@@ -149,19 +154,19 @@ class DomoticzDevice(panels.Action):
         else:
             size = 500, -1
 
-        switch_list = widgets.ListCtrl(
+        self.add('switch', widgets.ListCtrl(
             panel, self.columns, switches, selected=config.get('idx'),
-            style=wx.LC_SINGLE_SEL, size=size)
+            style=wx.LC_SINGLE_SEL, size=size))
 
-        self.add('switch', switch_list)
+        return panel, config, switches
 
-        return panel, config, switches, switch_list
-
-    def affirm(self, panel, switches, switch_list):
+    def affirm(self, panel, switches):
         config = self.config
         while panel.Affirmed():
             value = self.widgets['value'].GetValue()
-            selected = switch_list.GetFocusedItem()
+            switch_list = self.widgets['switch']
+
+            selected = switch_list.GetFirstSelected()
             if selected != -1 and value is not None and value != '':
                 idx = switch_list.GetItemData(selected)
 
@@ -169,6 +174,11 @@ class DomoticzDevice(panels.Action):
                 config['value'] = value
                 config['switch'] = switches[idx]
                 panel.SetResult(config)
+            else:
+                idx = None
+
+            switch_list.setData(self.getswitches(), idx)
+
 
 
 class DomoticzRaw(DomoticzDevice):
@@ -186,10 +196,10 @@ class DomoticzRaw(DomoticzDevice):
         )
 
     def Configure(self, config=None, *args):
-        panel, config, switches, switch_grid = DomoticzDevice.Configure(
+        panel, config, switches = DomoticzDevice.Configure(
             self, config, *args)
         self.add_field('value')
-        self.affirm(panel, switches, switch_grid)
+        self.affirm(panel, switches)
 
 
 class DomoticzSwitch(DomoticzDevice):
@@ -203,48 +213,48 @@ class DomoticzSwitch(DomoticzDevice):
         )
 
     def Configure(self, config=None, *args):
-        panel, config, switches, switch_grid = DomoticzDevice.Configure(
+        panel, config, switches = DomoticzDevice.Configure(
             self, config, *args)
         self.add_field('value', widget=wx.ComboBox,
                        choices=('On', 'Off', 'Toggle'))
-        self.affirm(panel, switches, switch_grid)
-
-
-class DomoticzBlinds(DomoticzSwitch):
-    name = 'Blinds'
-    switch_type = 'Blinds Percentage'
-
-    def __call__(self, config):
-        DomoticzDevice.__call__(
-            self,
-            config,
-            switchcmd='Set Level',
-            level=config['value'],
-        )
-
-    def Configure(self, config=None, *args):
-        panel, config, switches, switch_grid = DomoticzDevice.Configure(
-            self, config, *args)
-        self.add_field('value', widget=wx.ComboBox, choices=('Open', 'Close'))
-        self.affirm(panel, switches, switch_grid)
+        self.affirm(panel, switches)
 
 
 class DomoticzDimmer(DomoticzDevice):
     name = 'Dimmer'
 
     def __call__(self, config):
+        switch = config['switch']
+        value = config['value']
+        max_level = switch['MaxDimLevel']
+
+        level = min(max_level, math.ceil(value * (max_level / 100.)))
+        self.debug('Value %r recalculated to level %r using max: %r',
+                   value, level, max_level)
+
         DomoticzDevice.__call__(
             self,
             config,
             switchcmd='Set Level',
-            level=config['value'],
+            level=level,
         )
 
     def Configure(self, config=None, *args):
-        panel, config, switches, switch_grid = DomoticzDevice.Configure(
+        panel, config, switches = DomoticzDevice.Configure(
             self, config, *args)
         self.add_field('value', widget=wx.SpinCtrl)
-        self.affirm(panel, switches, switch_grid)
+        self.affirm(panel, switches)
+
+
+class DomoticzBlinds(DomoticzDevice):
+    name = 'Blinds'
+    switch_type = 'Blinds Percentage'
+
+    def Configure(self, config=None, *args):
+        panel, config, switches = DomoticzDevice.Configure(
+            self, config, *args)
+        self.add_field('value', widget=wx.ComboBox, choices=('Open', 'Close'))
+        self.affirm(panel, switches)
 
 
 if __name__ == '__main__':

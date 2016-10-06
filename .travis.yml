@@ -1,0 +1,25 @@
+sudo: false
+language: python
+python:
+- '2.7'
+- '3.3'
+- '3.4'
+- '3.5'
+- pypy
+- pypy3
+install:
+- pip install flake8
+script:
+- flake8 --ignore=W391 domoticz
+after_success:
+- coveralls
+before_deploy:
+  zip -r domoticz.zip domoticz
+deploy:
+  provider: releases
+  api_key:
+    secure: F44rZOaruHI1XmqSCM1TfFhxEQmsAz0PJo6YTONlOnCYj8iaVRXmcEmilZOt4ETDr9fWlP5kcDyGIY8R12n8UJCx73ETIUcJZFbNyAgZ92m5cNGl9WUJoefodxpX5fadRFIlEx5dIIxrQs6ejLXz2k3x28fb0efJdKK9z5JTdREvAEuoWkUsTtXwQPqHLDuHd65C9HLugVpqqD4+e7Koniu15LHMvG/9jEt0tJMry7pg1vRtpDnk44+e7YDK/ofQLwTnTbM8g+yzdrC5U0BqjJVt/CC4WLqsNohAfSfMkpz6kb2PX5m+V6gO4btQBqBdOINpKj56HQ27Vsf1/CRPlsxBS14ZA0SxtJJ0Rx/O/TANwfo40aLKkAzrAPBgs9pl7jMr3kiZpG2EXxhLOHdOB0U9+pHxtRZW4S3no7UeSY1mspWyOhl8LXA8yv0x9eK/uQnEF4Mg+dMY8EXCrfsEq0ViweTK8g2dVsHROUgEcKx4TvDKmQOLZXszogG1q/OiEz1Tz3RdTu2tg4YkPIftCkxfSwOmaRDkWGzoT+r8oFQBQNu5ura6jRMq3V09LVjh56I8ukKaAKMqf5pb8DN0ZWe3L89f1UYpypwEqgvF412TqEBjacNQuVJHgnl/PuU8RgsYPU57LVj3pdz0g+RgzwY+P1JNGKk5Zg36qNVXCu4=
+  file: domoticz.zip
+  skip_cleanup: true
+  on:
+    repo: WoLpH/eventghost-domoticz

@@ -1,9 +1,7 @@
 from __future__ import print_function
 
-import abc
-
 import wx
-
+import abc
 import eg_base
 
 
@@ -44,6 +42,25 @@ class Base(object):
         self.config = kwargs.get('config', {})
         self.widgets = dict()
         self.row = 0
+        self.actions = dict()
+
+    def debug(self, message, *args, **kwargs):
+        class_ = kwargs.pop('__class__', self.__class__)
+
+        if hasattr(self, 'plugin'):
+            return self.plugin.debug(message, __class__=self.__class__,
+                                     *args, **kwargs)
+        elif self.config.get('debug'):
+            if not isinstance(message, basestring):
+                message = unicode(message)
+
+            if args:
+                message %= args
+
+            if kwargs:
+                message %= kwargs
+
+            print('%s: %s' % (class_.__name__, message))
 
     def add(self, key, widget, row=None, col=None, flag=wx.EXPAND | wx.ALL):
         if row is None:
@@ -128,9 +145,13 @@ class Plugin(Base, eg_base.Plugin):
     def __close__(self):
         pass
 
+    def AddAction(self, action):
+        self.actions[action.__name__] = eg_base.Plugin.AddAction(self, action)
+
     if eg_base.TESTING:
-        def AddAction(self, class_):
-            instance = class_()
+        def AddAction(self, action):
+            instance = action()
             instance.plugin = self
             instance.Configure(self.config)
+            self.actions[action.__name__] = instance
 

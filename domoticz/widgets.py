@@ -1,8 +1,6 @@
 import wx
 from wx.lib.mixins import listctrl
 
-import eg_base
-
 
 class ListCtrl(wx.ListCtrl, listctrl.ColumnSorterMixin):
     def __init__(self, parent, columns, data, selected=None, size=(-1, -1),
@@ -47,6 +45,8 @@ class ListCtrl(wx.ListCtrl, listctrl.ColumnSorterMixin):
         self.rows += 1
 
     def setData(self, data, selected=None):
+        self.rows = 0
+        self.DeleteAllItems()
         self.itemDataMap = dict()
         for idx, values in data.items():
             idx = int(idx)
@@ -58,3 +58,8 @@ class ListCtrl(wx.ListCtrl, listctrl.ColumnSorterMixin):
                     row.append(values[key])
 
             self.AppendRow(values, selected)
+
+        # Autoresize columns
+        for i in range(len(self.columns)):
+            self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
+
